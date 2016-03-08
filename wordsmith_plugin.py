@@ -126,6 +126,8 @@ class Plugin(object):
         if self.game is None:
             return
 
+        data = data.replace('\u0002', '')
+
         if target != self.game.channel:
             return
 
