@@ -18,16 +18,20 @@ class Game:
     def clear_current_words(self):
         self.current_words = []
 
+    def remove_available_word(self, word):
+        word = word.upper()
+
+        try:
+            self.available_words.remove(word)
+            print('Removing word:', word)
+        except (KeyError, ValueError):
+            pass
+
     def add_words(self, words):
-        print('Adding words:', words)
         for word in words:
             word = word.upper()
 
-            try:
-                self.available_words.remove(word)
-            except (KeyError, ValueError):
-                pass
-
+            self.remove_available_word(word)
             self.current_words.append(word)
 
     def next_action(self):
@@ -84,6 +88,7 @@ class Game:
 
         if word is not None:
             self.turn_count = 0
+            self.remove_available_word(word)
 
         return word
 
@@ -165,21 +170,11 @@ class Plugin(object):
             except (KeyError, ValueError):
                 pass
 
-            try:
-                self.game.available_words.remove(word)
-            except (KeyError, ValueError):
-                pass
-
-            #self.bot.privmsg(self.game.channel, self.game.next_action())
+            self.game.remove_available_word(word)
         elif 'is not possible to make!' in data:
             word = data[:data.index('is not')].strip().upper()
 
-            try:
-                self.game.available_words.remove(word)
-            except (KeyError, ValueError):
-                pass
-
-            #self.bot.privmsg(self.game.channel, self.game.next_action())
+            self.game.remove_available_word(word)
         elif ';' in data:
             self.game.clear_current_words()
 
@@ -196,7 +191,7 @@ class Plugin(object):
             self.bot.privmsg(self.game.channel, self.game.next_action())
         elif 'won' in data and '!' in data:  # x won y
             player = data[0:data.index(' won ')].strip()
-            word = data[data.index(' won ') + 3:-1].strip()
+            word = data[data.index(' won ') + 5:-1].strip()
             self.game.add_words([word])
         else:
             print('Argh!', data)
@@ -209,7 +204,10 @@ class Plugin(object):
         if word is not None:
             self.bot.privmsg(self.game.channel, '\\' + word)
 
-        self.bot.loop.call_later(10, self.play_loop)
+        self.bot.loop.call_later(5, self.play_loop)
+
+    def speak(self, channel, message):
+        self.bot.privmsg(channel, message)
 
     @command
     def play_grabble(self, mask, target, args):
