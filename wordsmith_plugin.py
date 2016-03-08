@@ -160,12 +160,8 @@ class Plugin(object):
             player = data[13:].strip()
             print('Current player:', player)
             if player == self.bot.nick:
-                next_word = self.game.find_word()
-                if next_word:
-                    self.bot.privmsg(self.game.channel, '\\' + next_word)
-                else:
-                    self.bot.privmsg(self.game.channel,
-                                     self.game.next_action())
+                self.bot.loop.call_later(3, self.speak, self.game.channel,
+                                         self.game.next_action())
         elif 'is not a word!' in data:
             word = data[:data.index('is not')].strip().upper()
 
