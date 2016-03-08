@@ -227,6 +227,23 @@ class Plugin(object):
         self.bot.privmsg(target, '\\\\start')
         self.bot.loop.call_soon(self.play_loop)
 
+    @command
+    def stop_grabble(self, mask, target, args):
+        """
+        Stop playing Grabble.
+
+        %%stop_grabble
+        """
+
+        if irc3.utils.IrcString(target).is_nick:
+            self.bot.privmsg(mask.nick, "You're not a channel.")
+
+        if self.game is None:
+            self.bot.privmsg(target, "I'm not playing.")
+
+        self.bot.privmsg(self.game.channel, '\\\\leave')
+        self.game = None
+
     def announce_word(self, channel):
         p = ['great', 'fantastic', 'amazing', 'lovely', 'nice', 'excellent']
         word = random.choice(self.words)
