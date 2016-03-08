@@ -51,8 +51,12 @@ class Game:
         for ch in word:
             if ch in all_of_tiles:
                 all_of_tiles.remove(ch)
+            elif '@' in all_of_tiles:
+                all_of_tiles.remove('@')
             elif ch in some_of_tiles:
                 some_of_tiles.remove(ch)
+            elif '@' in some_of_tiles:
+                some_of_tiles.remove('@')
             else:
                 return False
 
