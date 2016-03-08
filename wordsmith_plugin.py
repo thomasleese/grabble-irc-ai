@@ -6,7 +6,7 @@ from irc3.plugins.command import command
 
 
 class Game:
-    def __init__(self, available_words, channel):
+    def __init__(self, available_words, channel, as_human=False):
         self.available_words = set(available_words)
         self.channel = channel
 
@@ -14,6 +14,23 @@ class Game:
         self.free_tiles = []
 
         self.clear_current_words()
+
+        self.has_tiles = True
+        self.as_human = True
+
+    @property
+    def play_loop_delay(self):
+        if self.as_human:
+            return random.randint(2, 30)
+        else:
+            return 6
+
+    @property
+    def next_action_delay(self):
+        if self.as_human:
+            return random.randint(5, 20)
+        else:
+            return 3
 
     def clear_current_words(self):
         self.current_words = []
@@ -35,6 +52,9 @@ class Game:
             self.current_words.append(word)
 
     def next_action(self):
+        if not self.has_tiles:
+            return '\\\\end'
+
         if self.turn_count > 10:
             return '\\\\end'
         else:
@@ -106,6 +126,8 @@ class Plugin(object):
         self.game = None
         self.game_bot = None
 
+        self.next_action_handle = None
+
         with open('dictionary.txt') as file:
             self.words = []
             for line in file:
@@ -152,7 +174,11 @@ class Plugin(object):
         elif data.startswith('Player') and data.endswith('removed!'):
             self.bot.privmsg(self.game.channel, 'Bye bye.')
         elif 'has requested game end.' in data:
-            msg = "Hmm. I don't think I'm quite ready to end yet."
+            if self.game.has_tiles:
+                msg = "Hmm. I don't think I'm quite ready to end yet."
+            else:
+                msg = '\\\\end'
+
             self.bot.privmsg(self.game.channel, msg)
         elif data.startswith('Flipped:'):
             characters = data[9:data.index('(')].strip()
@@ -162,8 +188,10 @@ class Plugin(object):
             player = data[13:].strip()
             print('Current player:', player)
             if player == self.bot.nick:
-                self.bot.loop.call_later(3, self.speak, self.game.channel,
-                                         self.game.next_action())
+                self.next_action_handle = \
+                    self.bot.loop.call_later(self.game.next_action_delay,
+                                             self.speak, self.game.channel,
+                                             self.game.next_action())
         elif 'is not a word!' in data:
             word = data[:data.index('is not')].strip().upper()
 
@@ -191,10 +219,18 @@ class Plugin(object):
                 self.game.add_words(words)
         elif "It's {}'s go, not yours!".format(self.bot.nick) in data:
             self.bot.privmsg(self.game.channel, self.game.next_action())
+            if self.next_action_handle is not None:
+                self.next_action_handle.cancel()
+                self.next_action_handle = None
         elif 'won' in data and '!' in data:  # x won y
             player = data[0:data.index(' won ')].strip()
             word = data[data.index(' won ') + 5:-1].strip()
             self.game.add_words([word])
+            if self.next_action_handle is not None:
+                self.next_action_handle.cancel()
+                self.next_action_handle = None
+        elif 'There are no tiles left!' in data:
+            self.game.has_tiles = False
         else:
             print('Argh!', data)
 
@@ -206,7 +242,7 @@ class Plugin(object):
         if word is not None:
             self.bot.privmsg(self.game.channel, '\\' + word)
 
-        self.bot.loop.call_later(5, self.play_loop)
+        self.bot.loop.call_later(self.game.play_loop_delay, self.play_loop)
 
     def speak(self, channel, message):
         self.bot.privmsg(channel, message)
@@ -226,6 +262,24 @@ class Plugin(object):
             self.bot.privmsg(target, "I'm already playing.")
 
         self.game = Game(self.words, target)
+        self.bot.privmsg(target, '\\\\start')
+        self.bot.loop.call_soon(self.play_loop)
+
+    @command
+    def play_grabble_as_human(self, mask, target, args):
+        """
+        Play Grabble as human.
+
+        %%play_grabble_as_human
+        """
+
+        if irc3.utils.IrcString(target).is_nick:
+            self.bot.privmsg(mask.nick, "You're not a channel.")
+
+        if self.game is not None:
+            self.bot.privmsg(target, "I'm already playing.")
+
+        self.game = Game(self.words, target, True)
         self.bot.privmsg(target, '\\\\start')
         self.bot.loop.call_soon(self.play_loop)
 
