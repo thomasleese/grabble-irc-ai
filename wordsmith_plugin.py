@@ -141,7 +141,7 @@ class Plugin(object):
 
         if mask.nick == self.bot.nick:
             self.bot.privmsg(channel, 'I like Grabble!')
-            self.announce_word(channel)
+            self.announce_word_cb(channel)
 
     @irc3.event(irc3.rfc.PRIVMSG)
     def on_privmsg(self, mask, target, data, **kwargs):
@@ -300,7 +300,13 @@ class Plugin(object):
         self.bot.privmsg(self.game.channel, '\\\\leave')
         self.game = None
 
-    def announce_word(self, channel):
+    def announce_word_cb(self, channel):
+        self.announce_word_worker(channel)
+
+        delay = random.randint(0, 24 * 60 * 60)
+        self.bot.loop.call_later(delay, self.announce_word_cb, channel)
+
+    def announce_word_worker(self, channel):
         p = ['a great', 'a fantastic', 'an amazing', 'a lovely', 'a nice',
                 'an excellent']
         word = random.choice(self.words)
@@ -308,5 +314,11 @@ class Plugin(object):
                                                              word.lower())
         self.bot.privmsg(channel, sentence)
 
-        delay = random.randint(0, 24 * 60 * 60)
-        self.bot.loop.call_later(delay, self.announce_word, channel)
+    @command
+    def announce_word(self, mask, target, args):
+        """
+        Announce a word.
+
+        %%announce_word
+        """
+        self.announce_word_worker(target)
