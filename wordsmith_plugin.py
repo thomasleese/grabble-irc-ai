@@ -301,9 +301,10 @@ class Plugin(object):
         self.game = None
 
     def announce_word(self, channel):
-        p = ['great', 'fantastic', 'amazing', 'lovely', 'nice', 'excellent']
+        p = ['a great', 'a fantastic', 'an amazing', 'a lovely', 'a nice',
+                'an excellent']
         word = random.choice(self.words)
-        sentence = "Do you know what's a {} word? {}".format(random.choice(p),
+        sentence = "Do you know what's {} word? {}".format(random.choice(p),
                                                              word.lower())
         self.bot.privmsg(channel, sentence)
 
