@@ -303,7 +303,7 @@ class Plugin(object):
     def announce_word_cb(self, channel):
         self.announce_word_worker(channel)
 
-        delay = random.randint(0, 24 * 60 * 60)
+        delay = random.randint(12 * 60 * 60, 48 * 60 * 60)
         self.bot.loop.call_later(delay, self.announce_word_cb, channel)
 
     def announce_word_worker(self, channel):
